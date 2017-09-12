@@ -16,38 +16,18 @@ function getCurrentFilePath(context) {
 const webpackConfigCache = {};
 function getWebpackConfig(fromDir) {
   const pathname = path.resolve(fromDir);
-  if (webpackConfigCache[pathname]) {
+  if (webpackConfigCache[pathname])
     return webpackConfigCache[pathname];
-  }
 
-  if (!fs.existsSync(pathname)) {
+  if (!fs.existsSync(pathname))
     throw new Error(`Webpack config does not exists at ${pathname}.`);
+
+  try {
+    var config = webpackConfigCache[pathname] = require(pathname);
+    return config;
+  } catch (e) {
+    throw new Error(`Cannot load Webpack config: ${e.message}`);
   }
-
-  const webpackConfigLoadCode = [
-    'try {',
-    `  var config = JSON.stringify(require('${pathname}'));`,
-    '  console.log(config);',
-    '} catch (e) {',
-    `  console.log('{ "parseError": ' + JSON.stringify(e.message) + ' }');`,
-    '}'
-  ].join('');
-
-  let result = execFileSync(process.argv[0], [ '-e', webpackConfigLoadCode ]);
-  result = result.toString().trim();
-
-  if (!result) {
-    throw new Error(`Webpack config is empty at ${pathname}.`);
-  }
-
-  result = JSON.parse(result);
-  if (result.parseError) {
-    throw new Error(`Cannot load Webpack config: ${result.parseError}`);
-  }
-
-  webpackConfigCache[pathname] = result;
-
-  return result;
 }
 
 function getWebpackAliases(webpackConfigPath) {
